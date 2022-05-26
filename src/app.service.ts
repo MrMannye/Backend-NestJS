@@ -93,4 +93,19 @@ export class AppService {
     }
   }
 
+  async getSong(track_id: string):  Promise<any>{
+    const collection = this.database.collection('Top-Songs');
+    try {
+      if(track_id){
+        const users = await collection.find({"track_id": track_id}).toArray();
+        return users;
+      }else{
+        const users = await collection.find().toArray();
+        return users;
+      }
+    } catch (error) {
+      return(error.message);
+    }
+  }
+
 }
