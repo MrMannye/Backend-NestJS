@@ -8,6 +8,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MusicController } from './music/music.controller';
 import { AuthModule } from './auth/auth.module';
 import { SongsController } from './songs/songs.controller';
+import { LikedController } from './liked/liked.controller';
 import config from './config';
 
 @Module({
@@ -16,7 +17,7 @@ import config from './config';
       load: [config],
       isGlobal: true,
   }), DatabaseModule, AuthModule],
-  controllers: [AppController, UsersController, MusicController, SongsController],
+  controllers: [AppController, UsersController, MusicController, SongsController, LikedController],
   providers: [AppService],
 })
 export class AppModule {}

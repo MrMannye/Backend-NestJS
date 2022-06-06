@@ -2,16 +2,31 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { Db } from 'mongodb';
+import { InjectModel } from '@nestjs/mongoose';
 import { AuthService } from './auth/auth.service';
+import { Model, Schema as MongooseSchema } from 'mongoose';
 import * as bycrypt from 'bcrypt'
 
 import config from './config';
+import { User } from './entities/user.entity';
+import { Song } from './entities/song.entity';
+import { Liked } from './entities/liked.entity';
+
+
+interface LikedSong{ 
+  idUser: MongooseSchema.Types.ObjectId
+  idSong: MongooseSchema.Types.ObjectId
+}
 
 @Injectable()
 export class AppService {
   constructor(
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Song.name) private readonly songModel: Model<Song>,
+    @InjectModel(Liked.name) private readonly likedModel: Model<Liked>,
     // @Inject('API_KEY') private apiKey: string,
     //@Inject('TASKS') private tasks: any[],
+
     @Inject('MONGO') private database: Db,
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
     private authService: AuthService,
@@ -24,14 +39,12 @@ export class AppService {
   }
 
   async getUsers(email: string):  Promise<any>{
-    const collection = this.database.collection('Users');
     try {
       if(email){
-        const users = collection.find({"email": email}).toArray();
-        return users;
+        const user = await this.userModel.findOne({"email": email});
+        return user;
       }else{
-        const collection = this.database.collection('Users');
-        const users = collection.find().toArray();
+        const users = await this.userModel.find({});
         return users;
       }
     } catch (error) {
@@ -55,15 +68,16 @@ export class AppService {
   }
 
   async addUser(infoUser:any): Promise<any>{
-    const collection = this.database.collection('Users');
     try {
-      const user = await this.getUsers(infoUser.email);
-      if(user === null){
-        return "Usuario existente";
+      const user = await this.userModel.findOne({"email": infoUser.email});
+      console.log(user)
+      if(user){
+        return ("Usuario existente")
       }else{
         infoUser.password = await bycrypt.hash(infoUser.password,10);
-        const users = collection.insertOne(infoUser);
-        return users;
+        const newUser = new this.userModel(infoUser)
+        await newUser.save()
+        return newUser;
       }
     } catch (error) {
       return(error.message);
@@ -73,14 +87,18 @@ export class AppService {
   async loginUser(User:any): Promise<any>{
     try {
       const user = await this.getUsers(User.email);
-      console.log(user[0])
-      if(user.length === 0){
+      console.log(user)
+      if(!user){
         return "Usuario no existente";
       }else{
-        return bycrypt.compare(User.password, user[0].password)
+        return bycrypt.compare(User.password, user.password)
         .then((response) => {
             if (response === true) {
-                return this.authService.login({user: User.name, id: User._id});
+                return {
+                  jwt: this.authService.login({user: User.name, id: User._id}),
+                  name: user.name,
+                  admin: user.admin
+                };
             } else {
                 throw new Error('Informacion invalida')
             }
@@ -94,18 +112,56 @@ export class AppService {
   }
 
   async getSong(track_id: string):  Promise<any>{
-    const collection = this.database.collection('Top-Songs');
     try {
       if(track_id){
-        const users = await collection.find({"track_id": track_id}).toArray();
-        return users;
+        const song = await this.songModel.findOne({"track_id": track_id});
+        return song;
       }else{
-        const users = await collection.find().toArray();
-        return users;
+        const song = await this.songModel.find({});
+        return song;
       }
     } catch (error) {
       return(error.message);
     }
   }
 
+
+  async addSongLiked(song:LikedSong): Promise<any>{
+    try {
+      const user = await this.likedModel.find({user: song.idUser});
+      if(user.length !== 0){
+        const songFound = await this.likedModel.findOne({songs: song.idSong});
+        console.log(songFound)
+        if(songFound ){
+          return "[app.service] Song Added to your liked songs"
+        }
+        await this.likedModel.findOneAndUpdate({user: song.idUser}, {$push: {'songs': song.idSong}})
+        try {
+          this.likedModel.findOne({user: song.idUser})
+          .populate('user')
+          .populate('songs')
+          .exec((error, populated) => {
+            if (error) {
+              console.log(error)
+              return (`[addUpdateSongs] fallo en el FindOne ${error}`);
+            } else {
+                // console.log(populated)
+                return populated; //retornamos el documento poblado
+            }
+        })
+        } catch (error) {
+          return error
+        }
+      }else{
+        const newUser = new this.likedModel({
+          user: song.idUser,
+          songs: song.idSong
+        })
+        await newUser.save();
+        return newUser;
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
 }
