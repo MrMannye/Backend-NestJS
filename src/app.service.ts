@@ -17,6 +17,9 @@ interface LikedSong{
   idUser: MongooseSchema.Types.ObjectId
   idSong: MongooseSchema.Types.ObjectId
 }
+interface SongLiked{
+  idUser: MongooseSchema.Types.ObjectId
+}
 
 @Injectable()
 export class AppService {
@@ -97,7 +100,8 @@ export class AppService {
                 return {
                   jwt: this.authService.login({user: User.name, id: User._id}),
                   name: user.name,
-                  admin: user.admin
+                  admin: user.admin,
+                  id: user._id
                 };
             } else {
                 throw new Error('Informacion invalida')
@@ -125,10 +129,37 @@ export class AppService {
     }
   }
 
+  async getSongLiked(song: SongLiked): Promise<any>{
+    try {
+      const user = await this.likedModel.find({user: song.idUser});
+      console.log(user)
+      if(user.length !== 0){
+        try {
+          this.likedModel.findOne({user: song.idUser})
+          .populate('user')
+          .populate('songs')
+          .exec((error, populated) => {
+            if (error) {
+              console.log(error)
+              return (`[addUpdateSongs] fallo en el FindOne ${error}`);
+            } else {
+                console.log(populated)
+                return populated; //retornamos el documento poblado
+            }
+        })
+        } catch (error) {
+          return error
+        }
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
 
   async addSongLiked(song:LikedSong): Promise<any>{
     try {
       const user = await this.likedModel.find({user: song.idUser});
+      console.log(user)
       if(user.length !== 0){
         const songFound = await this.likedModel.findOne({songs: song.idSong});
         console.log(songFound)
@@ -145,7 +176,7 @@ export class AppService {
               console.log(error)
               return (`[addUpdateSongs] fallo en el FindOne ${error}`);
             } else {
-                // console.log(populated)
+                console.log(populated)
                 return populated; //retornamos el documento poblado
             }
         })
