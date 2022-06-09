@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get ,Query} from '@nestjs/common';
 import { AppService } from 'src/app.service';
 import { Schema as MongooseSchema } from 'mongoose';
 
@@ -16,8 +16,8 @@ interface SongLiked{
 export class LikedController {
     constructor(private readonly appService:AppService){}
 
-    @Get('')
-    async getSongLiked(@Body() song: SongLiked ): Promise<any>{
+    @Get('/get')
+    async getSongLiked(@Query() song: SongLiked ): Promise<any>{
         try {
             const songAdded = await this.appService.getSongLiked(song);
             return songAdded;
@@ -26,7 +26,7 @@ export class LikedController {
         }
     }
 
-    @Post('')
+    @Post('/')
     async addSongLiked(@Body() song: LikedSong ): Promise<any>{
         try {
             const songAdded = await this.appService.addSongLiked(song);
