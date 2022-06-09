@@ -130,31 +130,32 @@ export class AppService {
     }
   }
 
-  async getSongLiked(song: SongLiked): Promise<any>{
-    try {
-      const user = await this.likedModel.find({user: song.idUser});
-      console.log(user)
-      if(user.length !== 0){
-        try {
-          this.likedModel.findOne({user: song.idUser})
-          .populate('user')
-          .populate('songs')
-          .exec((error, populated) => {
-            if (error) {
-              console.log(error)
-              return (`[addUpdateSongs] fallo en el FindOne ${error}`);
-            } else {
-                console.log(populated)
-                return populated; //retornamos el documento poblado
-            }
-        })
-        } catch (error) {
-          return error
+  getSongLiked(song: SongLiked): Promise<any>{
+    return new Promise(async(resolve,reject) => {
+      try {
+        const user = await this.likedModel.find({user: song.idUser});
+        if(user.length !== 0){
+          try {
+            this.likedModel.findOne({user: song.idUser})
+            .populate('songs')
+            .exec((error, populated) => {
+              if (error) {
+                console.log(error)
+                reject(`[addUpdateSongs] fallo en el FindOne ${error}`);
+              } else {
+                  const songs = populated.toJSON();
+                  console.log(songs)
+                  resolve(songs); //retornamos el documento poblado
+              }
+          })
+          } catch (error) {
+            reject(error)
+          }
         }
+      } catch (error) {
+        reject(error)
       }
-    } catch (error) {
-      console.log(error)
-    }
+    })
   }
 
   async addSongLiked(song:LikedSong): Promise<any>{
