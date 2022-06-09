@@ -100,6 +100,7 @@ export class AppService {
                 return {
                   jwt: this.authService.login({user: User.name, id: User._id}),
                   name: user.name,
+                  email: user.email,
                   admin: user.admin,
                   id: user._id
                 };
