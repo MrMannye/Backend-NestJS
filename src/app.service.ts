@@ -143,9 +143,7 @@ export class AppService {
                 console.log(error)
                 reject(`[addUpdateSongs] fallo en el FindOne ${error}`);
               } else {
-                  const songs = populated.toJSON();
-                  console.log(songs)
-                  resolve(songs); //retornamos el documento poblado
+                  resolve(populated); //retornamos el documento poblado
               }
           })
           } catch (error) {
@@ -163,11 +161,6 @@ export class AppService {
       const user = await this.likedModel.find({user: song.idUser});
       console.log(user)
       if(user.length !== 0){
-        const songFound = await this.likedModel.findOne({songs: song.idSong});
-        console.log(songFound)
-        if(songFound ){
-          return "[app.service] Song Added to your liked songs"
-        }
         await this.likedModel.findOneAndUpdate({user: song.idUser}, {$push: {'songs': song.idSong}})
         try {
           this.likedModel.findOne({user: song.idUser})
